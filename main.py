@@ -11,17 +11,31 @@ import scipy.io.wavfile
 from scipy import signal
 import threading
 import queue
-import tkinter as tk
-from tkinter import filedialog
+# import tkinter as tk
+# from tkinter import filedialog
 import time
 import math
 import random
-import numba
+# import numba
 import json
 
 SETTINGS_FILE = os.path.expanduser("~/.config/mini-piano-roll/settings.json")
 help_open = False
 input_blocked = False
+
+def file_dialog_open(title="Open"):
+    result = subprocess.run(
+        ['zenity', '--file-selection', f'--title={title}'],
+        capture_output=True, text=True
+    )
+    return result.stdout.strip()
+
+def file_dialog_save(title="Save", initial_name=""):
+    args = ['zenity', '--file-selection', '--save', '--confirm-overwrite', f'--title={title}']
+    if initial_name:
+        args += [f'--filename={initial_name}']
+    result = subprocess.run(args, capture_output=True, text=True)
+    return result.stdout.strip()
 
 def load_ui_scale():
     if os.path.exists(SETTINGS_FILE):
@@ -32,6 +46,7 @@ def load_ui_scale():
         except:
             pass
     return 2  # default
+
 def save_settings_with_scale(scale):
     os.makedirs(os.path.dirname(SETTINGS_FILE), exist_ok=True)
     with open(SETTINGS_FILE, 'w') as f:
@@ -577,14 +592,14 @@ wavetable_pulse_75 = generate_wavetable(200, "pulse", 0.75)
 wavetable_brass = generate_wavetable(200, "brass")
 wavetable_triangle = generate_wavetable(200, "triangle")
 
-@numba.jit(nopython=True)
+# @numba.jit(nopython=True)
 def wavetable_lookup(phase, wavetable):
     """Nearest-neighbor wavetable lookup - preserves exact harmonics"""
     idx = int(phase * len(wavetable) + 0.5)  # Round to nearest
     idx = idx % len(wavetable)
     return wavetable[idx]
 
-@numba.jit(nopython=True)
+# @numba.jit(nopython=True)
 def generate_from_wavetable(frequency, t, wavetable, sample_rate):
     """Generate waveform by reading from wavetable at any pitch"""
     wave = np.zeros_like(t)
@@ -596,12 +611,12 @@ def generate_from_wavetable(frequency, t, wavetable, sample_rate):
 
     return wave
 
-def warmup_numba():
-    """Compile Numba functions on startup"""
-    dummy_t = np.linspace(0, 0.1, 9600)
-    generate_from_wavetable(440, dummy_t, wavetable_pulse_12, SAMPLE_RATE)
-    generate_from_wavetable(440, dummy_t, wavetable_brass, SAMPLE_RATE)
-    print("Numba JIT warmed up")
+# def warmup_numba():
+#     """Compile Numba functions on startup"""
+#     dummy_t = np.linspace(0, 0.1, 9600)
+#     generate_from_wavetable(440, dummy_t, wavetable_pulse_12, SAMPLE_RATE)
+#     generate_from_wavetable(440, dummy_t, wavetable_brass, SAMPLE_RATE)
+#     print("Numba JIT warmed up")
 
 # this is the realtime playback one
 def generate_note_for_chunk(frequency, t, full_duration, sample_rate=SAMPLE_RATE):
@@ -1494,10 +1509,7 @@ def menu_new():
 def menu_open():
     global notes, selected_note, current_file_path, TEMPO, TUNING_A, TUNING_SYSTEM, file_menu_open
 
-    filepath = filedialog.askopenfilename(
-        title="Open Song",
-        filetypes=[("Song", "*.song"), ("All files", "*.*")]
-    )
+    filepath = file_dialog_open("Open Song")
 
     if not filepath:
         return  # User cancelled
@@ -1550,11 +1562,7 @@ def menu_save():
 def menu_save_as():
     global current_file_path, file_menu_open
 
-    filepath = filedialog.asksaveasfilename(
-        title="Save Song",
-        defaultextension=".song",
-        filetypes=[("Song", "*.song"), ("All files", "*.*")]
-    )
+    filepath = file_dialog_save("Save Song", current_file_path or "untitled.song")
 
     if not filepath:
         return  # User cancelled
@@ -1571,21 +1579,16 @@ def menu_save_as():
 def menu_export_wav():
     global file_menu_open
 
-    root = tk.Tk()
-    root.withdraw()
+    # root = tk.Tk()
+    # root.withdraw()
     # Autofill filename from current song file
     initial_name = ""
     if current_file_path:
         base = os.path.splitext(os.path.basename(current_file_path))[0]
         initial_name = base + ".wav"
 
-    filepath = filedialog.asksaveasfilename(
-        defaultextension=".wav",
-        filetypes=[("WAV files", "*.wav")],
-        title="Export WAV",
-        initialfile=initial_name
-    )
-    root.destroy()
+    filepath = file_dialog_save("Export WAV", initial_name)
+    # root.destroy()
     pygame.event.clear()
 
     if not filepath:
@@ -1641,21 +1644,16 @@ def menu_export_wav():
 def menu_export_png():
     global file_menu_open
     
-    root = tk.Tk()
-    root.withdraw()
+    # root = tk.Tk()
+    # root.withdraw()
     # Autofill filename from current song file
     initial_name = ""
     if current_file_path:
         base = os.path.splitext(os.path.basename(current_file_path))[0]
         initial_name = base + ".png"
 
-    filepath = filedialog.asksaveasfilename(
-        defaultextension=".png",
-        filetypes=[("PNG files", "*.png")],
-        title="Export PNG",
-        initialfile=initial_name
-    )
-    root.destroy()
+    filepath = file_dialog_save("Export PNG", initial_name)
+    # root.destroy()
     pygame.event.clear()
 
     if not filepath:
@@ -1725,20 +1723,15 @@ def menu_export_png():
 def menu_export_mp4():
     global file_menu_open
 
-    root = tk.Tk()
-    root.withdraw()
+    # root = tk.Tk()
+    # root.withdraw()
     initial_name = ""
     if current_file_path:
         base = os.path.splitext(os.path.basename(current_file_path))[0]
         initial_name = base + ".mp4"
 
-    filepath = filedialog.asksaveasfilename(
-        defaultextension=".mp4",
-        filetypes=[("MP4 files", "*.mp4")],
-        title="Export MP4",
-        initialfile=initial_name
-    )
-    root.destroy()
+    filepath = file_dialog_save("Export MP4", initial_name)
+    # root.destroy()
     pygame.event.clear()
 
     if not filepath:
@@ -2392,7 +2385,7 @@ def draw_grid():
     screen.blit(pygame.transform.scale(grid_surface, (GRID_WIDTH, GRID_HEIGHT)), (GRID_X, GRID_Y))
 
 # Main loop
-warmup_numba()
+# warmup_numba()
 clock = pygame.time.Clock()
 running = True
 print(f"screen: {screen_width}x{screen_height}, window: {WIDTH}x{HEIGHT}, pos: {pos_x},{pos_y}")
