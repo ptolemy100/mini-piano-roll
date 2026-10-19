@@ -23,12 +23,19 @@ SETTINGS_FILE = os.path.expanduser("~/.config/mini-piano-roll/settings.json")
 help_open = False
 input_blocked = False
 
+def run_dialog_and_wait(args):
+    """Run a zenity dialog without freezing the pygame window."""
+    proc = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    while proc.poll() is None:
+        pygame.event.pump()     # keep the window alive so no "not responding" popup
+        pygame.event.clear()    # discard any input while the dialog is open
+        pygame.time.wait(30)    # small pause so we don't spin the CPU
+    out, _ = proc.communicate()
+    return out.strip()
+
 def file_dialog_open(title="Open"):
-    result = subprocess.run(
-        ['zenity', '--file-selection', f'--title={title}'],
-        capture_output=True, text=True
-    )
-    return result.stdout.strip()
+    args = ['zenity', '--file-selection', f'--title={title}']
+    return run_dialog_and_wait(args)
 
 def file_dialog_save(title="Save", initial_name=""):
     wid = pygame.display.get_wm_info().get('window')
@@ -37,8 +44,7 @@ def file_dialog_save(title="Save", initial_name=""):
         args += [f'--attach={wid}']
     if initial_name:
         args += [f'--filename={initial_name}']
-    result = subprocess.run(args, capture_output=True, text=True)
-    return result.stdout.strip()
+    return run_dialog_and_wait(args)
 
 def load_ui_scale():
     if os.path.exists(SETTINGS_FILE):
