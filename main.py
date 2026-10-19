@@ -23,28 +23,39 @@ SETTINGS_FILE = os.path.expanduser("~/.config/mini-piano-roll/settings.json")
 help_open = False
 input_blocked = False
 
-def run_dialog_and_wait(args):
-    """Run a zenity dialog without freezing the pygame window."""
-    proc = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+DEFAULT_DIALOG_DIR = os.path.expanduser("~/Documents")
+
+def run_dialog_and_wait(args, cwd=None):
+    proc = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                            text=True, cwd=cwd or DEFAULT_DIALOG_DIR)
     while proc.poll() is None:
-        pygame.event.pump()     # keep the window alive so no "not responding" popup
-        pygame.event.clear()    # discard any input while the dialog is open
-        pygame.time.wait(30)    # small pause so we don't spin the CPU
-    out, _ = proc.communicate()
+        pygame.event.pump()
+        pygame.event.clear()
+        pygame.time.wait(30)
+    out, err = proc.communicate()
+    if err.strip():
+        print(f"zenity stderr: {err.strip()}")
     return out.strip()
 
-def file_dialog_open(title="Open"):
+def file_dialog_open(title="Open", filters=(), start_dir=None):
     args = ['zenity', '--file-selection', f'--title={title}']
-    return run_dialog_and_wait(args)
+    for name, pattern in filters:
+        args += [f'--file-filter={name} | {pattern}']
+    return run_dialog_and_wait(args, cwd=start_dir)
 
-def file_dialog_save(title="Save", initial_name=""):
+def file_dialog_save(title="Save", initial_name="", default_ext="", filters=()):
     wid = pygame.display.get_wm_info().get('window')
     args = ['zenity', '--file-selection', '--save', '--confirm-overwrite', f'--title={title}']
     if wid:
         args += [f'--attach={wid}']
     if initial_name:
         args += [f'--filename={initial_name}']
-    return run_dialog_and_wait(args)
+    for name, pattern in filters:
+        args += [f'--file-filter={name} | {pattern}']
+    path = run_dialog_and_wait(args)
+    if path and default_ext and not path.lower().endswith(default_ext):
+        path += default_ext
+    return path
 
 def load_ui_scale():
     if os.path.exists(SETTINGS_FILE):
@@ -1518,7 +1529,8 @@ def menu_new():
 def menu_open():
     global notes, selected_note, current_file_path, TEMPO, TUNING_A, TUNING_SYSTEM, file_menu_open
 
-    filepath = file_dialog_open("Open Song")
+    start_dir = os.path.dirname(current_file_path) if current_file_path else None
+    filepath = file_dialog_open("Open Song", [("Song files", "*.song"), ("All files", "*")], start_dir)
 
     if not filepath:
         return  # User cancelled
@@ -1571,7 +1583,12 @@ def menu_save():
 def menu_save_as():
     global current_file_path, file_menu_open
 
-    filepath = file_dialog_save("Save Song", current_file_path or "untitled.song")
+    initial_path = "untitled.song"
+    if current_file_path:
+        base = os.path.splitext(os.path.basename(current_file_path))[0]
+        initial_path = os.path.join(os.path.dirname(current_file_path), base + ".song")
+
+    filepath = file_dialog_save("Save Song", initial_name, ".song", [("Song files", "*.song")])
 
     if not filepath:
         return  # User cancelled
@@ -1588,16 +1605,13 @@ def menu_save_as():
 def menu_export_wav():
     global file_menu_open
 
-    # root = tk.Tk()
-    # root.withdraw()
-    # Autofill filename from current song file
-    initial_name = ""
+    initial_path = "untitled.wav"
     if current_file_path:
         base = os.path.splitext(os.path.basename(current_file_path))[0]
-        initial_name = base + ".wav"
+        initial_path = os.path.join(os.path.dirname(current_file_path), base + ".wav")
 
-    filepath = file_dialog_save("Export WAV", initial_name)
-    # root.destroy()
+    filepath = file_dialog_save("Export WAV", initial_path, ".wav", [("WAV files", "*.wav")])
+
     pygame.event.clear()
 
     if not filepath:
@@ -1656,12 +1670,12 @@ def menu_export_png():
     # root = tk.Tk()
     # root.withdraw()
     # Autofill filename from current song file
-    initial_name = ""
+    initial_path = "untitled.png"
     if current_file_path:
         base = os.path.splitext(os.path.basename(current_file_path))[0]
-        initial_name = base + ".png"
+        initial_path = os.path.join(os.path.dirname(current_file_path), base + ".png")
 
-    filepath = file_dialog_save("Export PNG", initial_name)
+    filepath = file_dialog_save("Export PNG", initial_path, ".png", [("PNG files", "*.png")])
     # root.destroy()
     pygame.event.clear()
 
@@ -1732,15 +1746,13 @@ def menu_export_png():
 def menu_export_mp4():
     global file_menu_open
 
-    # root = tk.Tk()
-    # root.withdraw()
-    initial_name = ""
+    initial_path = "untitled.mp4"
     if current_file_path:
         base = os.path.splitext(os.path.basename(current_file_path))[0]
-        initial_name = base + ".mp4"
+        initial_path = os.path.join(os.path.dirname(current_file_path), base + ".mp4")
 
-    filepath = file_dialog_save("Export MP4", initial_name)
-    # root.destroy()
+    filepath = file_dialog_save("Export MP$", initial_path, ".mp4", [("MP4 files", "*.mp4")])
+
     pygame.event.clear()
 
     if not filepath:
