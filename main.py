@@ -1543,7 +1543,7 @@ def menu_open():
 
     start_dir = os.path.dirname(current_file_path) if current_file_path else None
     filepath = file_dialog_open("Open Song", [("Song files", "*.song"), ("All files", "*")], start_dir)
-    filepath = resolve_save_path(filepath, os.path.dirname(current_file_path) if current_file_path else None)
+    # filepath = resolve_save_path(filepath, os.path.dirname(current_file_path) if current_file_path else None)
 
     if not filepath:
         return  # User cancelled
@@ -1602,7 +1602,7 @@ def menu_save_as():
         initial_path = os.path.join(os.path.dirname(current_file_path), base + ".song")
 
     filepath = file_dialog_save("Save Song", initial_path, ".song", [("Song files", "*.song")])
-    filepath = resolve_save_path(filepath, os.path.dirname(current_file_path) if current_file_path else None)
+    # filepath = resolve_save_path(filepath, os.path.dirname(current_file_path) if current_file_path else None)
 
     if not filepath:
         return  # User cancelled
@@ -1625,7 +1625,8 @@ def menu_export_wav():
         initial_path = os.path.join(os.path.dirname(current_file_path), base + ".wav")
 
     filepath = file_dialog_save("Export WAV", initial_path, ".wav", [("WAV files", "*.wav")])
-    filepath = resolve_save_path(filepath, os.path.dirname(current_file_path) if current_file_path else None)
+    print(f"DEBUG: dialog returned {repr(filepath)}")
+    # filepath = resolve_save_path(filepath, os.path.dirname(current_file_path) if current_file_path else None)
 
     pygame.event.clear()
 
@@ -1688,7 +1689,7 @@ def menu_export_png():
         initial_path = os.path.join(os.path.dirname(current_file_path), base + ".png")
 
     filepath = file_dialog_save("Export PNG", initial_path, ".png", [("PNG files", "*.png")])
-    filepath = resolve_save_path(filepath, os.path.dirname(current_file_path) if current_file_path else None)
+    # filepath = resolve_save_path(filepath, os.path.dirname(current_file_path) if current_file_path else None)
 
     pygame.event.clear()
 
