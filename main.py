@@ -31,7 +31,10 @@ def file_dialog_open(title="Open"):
     return result.stdout.strip()
 
 def file_dialog_save(title="Save", initial_name=""):
+    wid = pygame.display.get_wm_info().get('window')
     args = ['zenity', '--file-selection', '--save', '--confirm-overwrite', f'--title={title}']
+    if wid:
+        args += [f'--attach={wid}']
     if initial_name:
         args += [f'--filename={initial_name}']
     result = subprocess.run(args, capture_output=True, text=True)
