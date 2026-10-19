@@ -47,6 +47,7 @@ def run_dialog_and_wait(args, cwd=None):
     out, err = proc.communicate()
     if err.strip():
         print(f"zenity stderr: {err.strip()}")
+    print(f"DEBUG zenity returned: {out!r}, exit code {proc.returncode}")
     return out.strip()
 
 def file_dialog_open(title="Open", filters=(), start_dir=None):
