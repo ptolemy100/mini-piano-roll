@@ -2479,6 +2479,7 @@ while running:
                             menu_actions[row]()
                         else:
                             input_blocked = True
+                            pygame.time.wait(150)
                             menu_actions[row]()
                             input_blocked = False
                             pygame.event.clear()
