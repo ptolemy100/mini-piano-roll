@@ -43,13 +43,13 @@ def file_dialog_open(title="Open", filters=(), start_dir=None):
         args += [f'--file-filter={name} | {pattern}']
     return run_dialog_and_wait(args, cwd=start_dir)
 
-def file_dialog_save(title="Save", initial_name="", default_ext="", filters=()):
+def file_dialog_save(title="Save", initial_path="", default_ext="", filters=()):
     wid = pygame.display.get_wm_info().get('window')
     args = ['zenity', '--file-selection', '--save', '--confirm-overwrite', f'--title={title}']
     if wid:
         args += [f'--attach={wid}']
-    if initial_name:
-        args += [f'--filename={initial_name}']
+    if initial_path:
+        args += [f'--filename={initial_path}']
     for name, pattern in filters:
         args += [f'--file-filter={name} | {pattern}']
     path = run_dialog_and_wait(args)
@@ -1588,7 +1588,7 @@ def menu_save_as():
         base = os.path.splitext(os.path.basename(current_file_path))[0]
         initial_path = os.path.join(os.path.dirname(current_file_path), base + ".song")
 
-    filepath = file_dialog_save("Save Song", initial_name, ".song", [("Song files", "*.song")])
+    filepath = file_dialog_save("Save Song", initial_path, ".song", [("Song files", "*.song")])
 
     if not filepath:
         return  # User cancelled
