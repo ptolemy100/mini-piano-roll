@@ -1760,41 +1760,24 @@ def menu_export_png():
 
 _video_codec_cache = None
 
-def pick_video_codec_args():
-    """Choose the first video encoder that actually works in this ffmpeg."""
-    global _video_codec_cache
-    if _video_codec_cache is not None:
-        return _video_codec_cache
+VIDEO_ARGS = ['-c:v', 'libvpx-vp9', '-crf', '28', '-b:v', '0',
+              '-deadline', 'good', '-cpu-used', '4']
 
-    candidates = [
-        ['-c:v', 'libx264'],
-        ['-c:v', 'libopenh264', '-b:v', '4M'],
-        ['-c:v', 'mpeg4', '-q:v', '2'],   # last resort, not H.264
-    ]
-    for args in candidates:
-        try:
-            result = subprocess.run(
-                ['ffmpeg', '-hide_banner', '-loglevel', 'error', '-y',
-                 '-f', 'lavfi', '-i', 'color=c=black:s=64x64:r=30',
-                 '-frames:v', '2', *args, '-pix_fmt', 'yuv420p', '-f', 'null', '-'],
-                capture_output=True)
-        except FileNotFoundError:
-            return None
-        if result.returncode == 0:
-            _video_codec_cache = args
-            return args
-    return None
-
+def ffmpeg_can_encode_vp9():
+    try:
+        out = subprocess.run(['ffmpeg', '-hide_banner', '-encoders'],
+                             capture_output=True, text=True).stdout
+    except FileNotFoundError:
+        return False
+    return 'libvpx-vp9' in out
 
 def menu_export_mp4():
     global file_menu_open
 
     # Find a working encoder first, so we fail before asking for a filename
-    video_args = pick_video_codec_args()
-    if video_args is None:
-        print("MP4 export failed: ffmpeg was not found or has no working video encoder")
+    if not ffmpeg_can_encode_vp9():
+        print("MP4 export needs ffmpeg with VP9 (libvpx-vp9) support")
         return
-    print(f"MP4 export using encoder: {video_args[1]}")
 
     initial_path = "untitled.mp4"
     if current_file_path:
@@ -1909,7 +1892,7 @@ def menu_export_mp4():
         '-r', str(fps),
         '-i', '-',
         '-i', temp_wav,
-        *video_args,
+        *VIDEO_ARGS,
         '-pix_fmt', 'yuv420p',
         '-c:a', 'aac',
         '-ar', '96000',
