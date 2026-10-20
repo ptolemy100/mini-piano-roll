@@ -1758,16 +1758,50 @@ def menu_export_png():
     # file_menu_open = False
     print(f"Exported PNG: {filepath} ({img_width}x{img_height})")
 
+_video_codec_cache = None
+
+def pick_video_codec_args():
+    """Choose the first video encoder that actually works in this ffmpeg."""
+    global _video_codec_cache
+    if _video_codec_cache is not None:
+        return _video_codec_cache
+
+    candidates = [
+        ['-c:v', 'libx264'],
+        ['-c:v', 'libopenh264', '-b:v', '4M'],
+        ['-c:v', 'mpeg4', '-q:v', '2'],   # last resort, not H.264
+    ]
+    for args in candidates:
+        try:
+            result = subprocess.run(
+                ['ffmpeg', '-hide_banner', '-loglevel', 'error', '-y',
+                 '-f', 'lavfi', '-i', 'color=c=black:s=64x64:r=30',
+                 '-frames:v', '2', *args, '-pix_fmt', 'yuv420p', '-f', 'null', '-'],
+                capture_output=True)
+        except FileNotFoundError:
+            return None
+        if result.returncode == 0:
+            _video_codec_cache = args
+            return args
+    return None
+
+
 def menu_export_mp4():
     global file_menu_open
+
+    # Find a working encoder first, so we fail before asking for a filename
+    video_args = pick_video_codec_args()
+    if video_args is None:
+        print("MP4 export failed: ffmpeg was not found or has no working video encoder")
+        return
+    print(f"MP4 export using encoder: {video_args[1]}")
 
     initial_path = "untitled.mp4"
     if current_file_path:
         base = os.path.splitext(os.path.basename(current_file_path))[0]
         initial_path = os.path.join(os.path.dirname(current_file_path), base + ".mp4")
 
-    filepath = file_dialog_save("Export MP$", initial_path, ".mp4", [("MP4 files", "*.mp4")])
-
+    filepath = file_dialog_save("Export MP4", initial_path, ".mp4", [("MP4 files", "*.mp4")])
     pygame.event.clear()
 
     if not filepath:
@@ -1812,9 +1846,8 @@ def menu_export_mp4():
     total_beats = end_beat - start_beat
     total_frames = int(total_beats * frames_per_beat)
 
-    # Generate audio - exact same as menu_export_wav
+    # Generate audio - same as menu_export_wav
     sample_rate = SAMPLE_RATE
-    seconds_per_twelfth = seconds_per_quarter / 12
     padding_samples = int(0.5 * sample_rate)
     if notes:
         total_duration = (max_col - min_col) * seconds_per_twelfth
@@ -1839,68 +1872,13 @@ def menu_export_mp4():
     mix *= 0.08
     mix = np.clip(mix, -1.0, 1.0)
 
-    # Save temp WAV
-    temp_wav = filepath.replace(".mp4", "_temp.wav")
+    # Save temp WAV next to the output file
+    temp_wav = os.path.splitext(filepath)[0] + "_temp.wav"
     mix_16bit = (mix * 32767).astype(np.int16)
     scipy.io.wavfile.write(temp_wav, sample_rate, mix_16bit)
 
-    # Start ffmpeg
-    ffmpeg_cmd = [
-        'ffmpeg', '-y',
-        '-f', 'rawvideo',
-        '-vcodec', 'rawvideo',
-        '-s', f'{width}x{height}',
-        '-pix_fmt', 'rgb24',
-        '-r', str(fps),
-        '-i', '-',
-        '-i', temp_wav,
-        '-c:v', 'libx264',
-        '-pix_fmt', 'yuv420p',
-        '-c:a', 'aac',
-        '-ar', '96000',
-        '-b:a', '320k',
-        filepath
-    ]
-
-    process = subprocess.Popen(ffmpeg_cmd, stdin=subprocess.PIPE)
-
-    # Render frames beat by beat
-    silence_frames = int(0.5 * fps)  # half second of silence frames
-
-    # First render silence frames - no scrolling, first beat at left edge
-    origin_col = start_beat * 12
-
-    xs = np.arange(width)
-    ys = np.arange(height)
-    grid_cols = (origin_col + xs) // 12
-    pitch_rows = origin_row + (ys // PX_PER_SQUARE)
-    checker = (grid_cols[np.newaxis, :] + pitch_rows[:, np.newaxis]) % 2
-    gray = np.where(checker == 0, np.uint8(191), np.uint8(159))
-    pixels = np.stack([gray, gray, gray], axis=-1)
-
-    for note in notes:
-        nx = int(note.start_col - origin_col)
-        row_idx = int(note.pitch - origin_row)
-        py0 = row_idx * PX_PER_SQUARE
-        py1 = py0 + PX_PER_SQUARE
-        py0 = max(0, py0)
-        py1 = min(height, py1)
-        x0 = max(0, nx)
-        x1 = min(width, nx + int(note.duration))
-        if py0 < py1 and x0 < x1:
-            pixels[py0:py1, x0:x1] = [0, 0, 0]
-
-    for _ in range(silence_frames):
-        pygame.event.pump()
-        process.stdin.write(pixels.tobytes())
-
-    # Then render scrolling frames
-    for frame_num in range(total_frames):
-        pygame.event.pump()
-
-        current_beat = start_beat + int(frame_num / frames_per_beat)
-        origin_col = current_beat * 12
-
+    def build_frame(origin_col):
+        """Draw one video frame, with origin_col as the left edge (in twelfths)."""
         xs = np.arange(width)
         ys = np.arange(height)
         grid_cols = (origin_col + xs) // 12
@@ -1920,18 +1898,61 @@ def menu_export_mp4():
             x1 = min(width, nx + int(note.duration))
             if py0 < py1 and x0 < x1:
                 pixels[py0:py1, x0:x1] = [0, 0, 0]
+        return pixels.tobytes()
 
+    ffmpeg_cmd = [
+        'ffmpeg', '-y',
+        '-f', 'rawvideo',
+        '-vcodec', 'rawvideo',
+        '-s', f'{width}x{height}',
+        '-pix_fmt', 'rgb24',
+        '-r', str(fps),
+        '-i', '-',
+        '-i', temp_wav,
+        *video_args,
+        '-pix_fmt', 'yuv420p',
+        '-c:a', 'aac',
+        '-ar', '96000',
+        '-b:a', '320k',
+        filepath
+    ]
+
+    success = False
+    process = subprocess.Popen(ffmpeg_cmd, stdin=subprocess.PIPE)
+    try:
         try:
-            process.stdin.write(pixels.tobytes())
+            # Still frames first (half a second, no scrolling)
+            silence_frames = int(0.5 * fps)
+            first_frame = build_frame(start_beat * 12)
+            for _ in range(silence_frames):
+                pygame.event.pump()
+                process.stdin.write(first_frame)
+
+            # Then the scrolling frames, one jump per beat
+            for frame_num in range(total_frames):
+                pygame.event.pump()
+                current_beat = start_beat + int(frame_num / frames_per_beat)
+                process.stdin.write(build_frame(current_beat * 12))
+
+            process.stdin.close()
         except BrokenPipeError:
-            break
+            pass  # ffmpeg quit early; the return code below tells us why
 
-    process.stdin.close()
-    process.wait()
-    os.remove(temp_wav)
+        process.wait()
+        success = (process.returncode == 0)
+    finally:
+        if process.poll() is None:
+            process.kill()
+            process.wait()
+        if os.path.exists(temp_wav):
+            os.remove(temp_wav)
 
-    # file_menu_open = False
-    print(f"Exported MP4: {filepath}")
+    if success:
+        print(f"Exported MP4: {filepath}")
+    else:
+        print("MP4 export failed: ffmpeg returned an error (see messages above)")
+        if os.path.exists(filepath):
+            os.remove(filepath)  # don't leave a broken partial file behind
 
 def save_to_file(filepath):
     """Helper function to save current state to a file"""
