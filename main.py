@@ -1760,8 +1760,7 @@ def menu_export_png():
 
 _video_codec_cache = None
 
-VIDEO_ARGS = ['-c:v', 'libvpx-vp9', '-crf', '28', '-b:v', '0',
-              '-deadline', 'good', '-cpu-used', '4']
+VIDEO_ARGS = ['-c:v', 'libvpx-vp9', '-lossless', '1']
 
 def ffmpeg_can_encode_vp9():
     try:
