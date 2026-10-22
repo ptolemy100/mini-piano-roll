@@ -1760,7 +1760,31 @@ def menu_export_png():
 
 _video_codec_cache = None
 
-VIDEO_ARGS = ['-c:v', 'libx264', '-crf', '14', '-preset', 'medium']
+VIDEO_ENCODERS = [
+    ['-c:v', 'libx264', '-crf', '10', '-preset', 'slow'],
+    ['-c:v', 'libvpx-vp9', '-crf', '10', '-b:v', '0', '-cpu-used', '4'],
+]
+
+_video_args_cache = None
+
+def pick_video_args():
+    """Return the first encoder that actually works in this ffmpeg, or None."""
+    global _video_args_cache
+    if _video_args_cache is not None:
+        return _video_args_cache
+    for args in VIDEO_ENCODERS:
+        try:
+            result = subprocess.run(
+                ['ffmpeg', '-hide_banner', '-loglevel', 'error', '-y',
+                 '-f', 'lavfi', '-i', 'color=c=black:s=64x64:r=30',
+                 '-frames:v', '2', *args, '-pix_fmt', 'yuv420p', '-f', 'null', '-'],
+                capture_output=True)
+        except FileNotFoundError:
+            return None
+        if result.returncode == 0:
+            _video_args_cache = args
+            return args
+    return None
 
 def ffmpeg_can_encode_h264():
     try:
@@ -1773,9 +1797,11 @@ def ffmpeg_can_encode_h264():
 def menu_export_mp4():
     global file_menu_open
 
-    if not ffmpeg_can_encode_h264():
-        print("MP4 export needs ffmpeg with H.264 (libx264) support")
+    video_args = pick_video_args()
+    if video_args is None:
+        print("MP4 export failed: ffmpeg has no working H.264 or VP9 encoder")
         return
+    print(f"MP4 export using: {video_args[1]}")
 
     initial_path = "untitled.mp4"
     if current_file_path:
@@ -1890,7 +1916,7 @@ def menu_export_mp4():
         '-r', str(fps),
         '-i', '-',
         '-i', temp_wav,
-        *VIDEO_ARGS,
+        *video_args,
         '-pix_fmt', 'yuv420p',
         '-c:a', 'aac',
         '-ar', '96000',
