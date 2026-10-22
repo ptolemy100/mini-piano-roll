@@ -1760,15 +1760,15 @@ def menu_export_png():
 
 _video_codec_cache = None
 
-VIDEO_ARGS = ['-c:v', 'libvpx-vp9', '-lossless', '1']
+VIDEO_ARGS = ['-c:v', 'libx264', '-crf', '14', '-preset', 'medium']
 
-def ffmpeg_can_encode_vp9():
+def ffmpeg_can_encode_h264():
     try:
         out = subprocess.run(['ffmpeg', '-hide_banner', '-encoders'],
                              capture_output=True, text=True).stdout
     except FileNotFoundError:
         return False
-    return 'libvpx-vp9' in out
+    return 'libx264' in out
 
 def menu_export_mp4():
     global file_menu_open
