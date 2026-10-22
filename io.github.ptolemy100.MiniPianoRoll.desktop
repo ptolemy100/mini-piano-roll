@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Mini Piano Roll
+Comment=A tiny piano roll music sequencer
+Exec=mini-piano-roll
+Icon=io.github.ptolemy100.MiniPianoRoll
+Terminal=false
+Categories=AudioVideo;Audio;Music;

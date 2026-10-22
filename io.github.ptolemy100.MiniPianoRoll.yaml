@@ -1,0 +1,49 @@
+app-id: io.github.ptolemy100.MiniPianoRoll
+runtime: org.freedesktop.Platform
+runtime-version: '26.08'
+sdk: org.freedesktop.Sdk
+command: mini-piano-roll
+
+finish-args:
+  - --share=ipc
+  - --socket=x11
+  - --socket=wayland
+  - --socket=pulseaudio
+  - --device=dri
+  - --filesystem=home
+  - --filesystem=xdg-documents
+  - --filesystem=xdg-music
+  - --filesystem=xdg-download
+  - --filesystem=xdg-desktop
+  - --talk-name=org.freedesktop.portal.FileChooser
+  - --talk-name=org.freedesktop.portal.Documents
+
+modules:
+  - name: portaudio
+    sources:
+      - type: archive
+        url: https://files.portaudio.com/archives/pa_stable_v190700_20210406.tgz
+        sha256: 47efbf42c77c19a05d22e627d42873e991ec0c1357219c0d74ce6a2948cb2def
+
+  - python3-modules.json
+
+  - name: mini-piano-roll
+    buildsystem: simple
+    build-commands:
+      - mkdir -p /app/share/mini-piano-roll
+      - cp main.py /app/share/mini-piano-roll/
+      - cp -r images /app/share/mini-piano-roll/
+      - install -Dm644 icon.png /app/share/icons/hicolor/512x512/apps/io.github.ptolemy100.MiniPianoRoll.png
+      - install -Dm644 io.github.ptolemy100.MiniPianoRoll.desktop /app/share/applications/io.github.ptolemy100.MiniPianoRoll.desktop
+      - install -Dm644 io.github.ptolemy100.MiniPianoRoll.metainfo.xml /app/share/metainfo/io.github.ptolemy100.MiniPianoRoll.metainfo.xml
+      - echo '#!/bin/sh' > /app/bin/mini-piano-roll
+      - echo 'cd /app/share/mini-piano-roll && python3 main.py' >> /app/bin/mini-piano-roll
+      - chmod +x /app/bin/mini-piano-roll
+    sources:
+      - type: git
+        url: https://github.com/ptolemy100/mini-piano-roll
+        tag: v1.0
+      - type: file
+        path: io.github.ptolemy100.MiniPianoRoll.desktop
+      - type: file
+        path: io.github.ptolemy100.MiniPianoRoll.metainfo.xml

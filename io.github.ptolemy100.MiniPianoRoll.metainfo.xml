@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.ptolemy100.MiniPianoRoll</id>
+  <name>Mini Piano Roll</name>
+  <summary>A tiny piano roll music sequencer</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>LicenseRef-proprietary</project_license>
+  <description>
+    <p>Mini Piano Roll is a small music sequencer with four monophonic parts, several tuning systems, and exports to WAV, PNG and MP4.</p>
+  </description>
+  <launchable type="desktop-id">io.github.ptolemy100.MiniPianoRoll.desktop</launchable>
+  <url type="homepage">https://github.com/ptolemy100/mini-piano-roll</url>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="1.0" date="2026-10-21"/>
+  </releases>
+</component>
