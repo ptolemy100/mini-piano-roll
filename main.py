@@ -1773,9 +1773,8 @@ def ffmpeg_can_encode_h264():
 def menu_export_mp4():
     global file_menu_open
 
-    # Find a working encoder first, so we fail before asking for a filename
-    if not ffmpeg_can_encode_vp9():
-        print("MP4 export needs ffmpeg with VP9 (libvpx-vp9) support")
+    if not ffmpeg_can_encode_h264():
+        print("MP4 export needs ffmpeg with H.264 (libx264) support")
         return
 
     initial_path = "untitled.mp4"
