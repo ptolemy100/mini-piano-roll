@@ -25,18 +25,6 @@ input_blocked = False
 
 DEFAULT_DIALOG_DIR = os.path.expanduser("~/Documents")
 
-def resolve_save_path(chosen_path, fallback_dir=None):
-    """Turn a portal path into a real, writable path.
-
-    Inside Flatpak the dialog can return /run/user/<uid>/doc/<id>/name.ext,
-    which isn't writable. Keep only the filename and save it to a real folder.
-    """
-    if not chosen_path:
-        return ""
-    name = os.path.basename(chosen_path)
-    folder = fallback_dir or os.path.expanduser("~/Documents")
-    return os.path.join(folder, name)
-
 def run_dialog_and_wait(args, cwd=None):
     proc = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                             text=True, cwd=cwd or DEFAULT_DIALOG_DIR)
@@ -57,10 +45,7 @@ def file_dialog_open(title="Open", filters=(), start_dir=None):
     return run_dialog_and_wait(args, cwd=start_dir)
 
 def file_dialog_save(title="Save", initial_path="", default_ext="", filters=()):
-    wid = pygame.display.get_wm_info().get('window')
-    args = ['zenity', '--file-selection', '--save', '--confirm-overwrite', f'--title={title}']
-    if wid:
-        args += [f'--attach={wid}']
+    args = ['zenity', '--file-selection', '--save', f'--title={title}']
     if initial_path:
         args += [f'--filename={initial_path}']
     for name, pattern in filters:
@@ -1544,7 +1529,6 @@ def menu_open():
 
     start_dir = os.path.dirname(current_file_path) if current_file_path else None
     filepath = file_dialog_open("Open Song", [("Song files", "*.song"), ("All files", "*")], start_dir)
-    # filepath = resolve_save_path(filepath, os.path.dirname(current_file_path) if current_file_path else None)
 
     if not filepath:
         return  # User cancelled
@@ -1603,7 +1587,6 @@ def menu_save_as():
         initial_path = os.path.join(os.path.dirname(current_file_path), base + ".song")
 
     filepath = file_dialog_save("Save Song", initial_path, ".song", [("Song files", "*.song")])
-    # filepath = resolve_save_path(filepath, os.path.dirname(current_file_path) if current_file_path else None)
 
     if not filepath:
         return  # User cancelled
@@ -1690,7 +1673,6 @@ def menu_export_png():
         initial_path = os.path.join(os.path.dirname(current_file_path), base + ".png")
 
     filepath = file_dialog_save("Export PNG", initial_path, ".png", [("PNG files", "*.png")])
-    # filepath = resolve_save_path(filepath, os.path.dirname(current_file_path) if current_file_path else None)
 
     pygame.event.clear()
 
