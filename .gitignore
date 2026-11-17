@@ -1,2 +1,8 @@
 build-dir/
 .flatpak-builder/
+repo/
+*.flatpak
+*.mp4
+*.wav
+flatpak-pip-generator
+flatpak-pip-generator.py

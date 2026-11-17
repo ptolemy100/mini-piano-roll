@@ -3,13 +3,37 @@
   <id>io.github.ptolemy100.MiniPianoRoll</id>
   <name>Mini Piano Roll</name>
   <summary>A tiny piano roll music sequencer</summary>
+  <developer id="io.github.ptolemy100">
+    <name>ptolemy100</name>
+  </developer>
   <metadata_license>CC0-1.0</metadata_license>
-  <project_license>LicenseRef-proprietary</project_license>
+  <project_license>MIT</project_license>
   <description>
-    <p>Mini Piano Roll is a small music sequencer with four monophonic parts, several tuning systems, and exports to WAV, PNG and MP4.</p>
+    <p>Mini Piano Roll is a small music sequencer with four monophonic parts, chiptune-style sound, and a handful of tuning systems.</p>
+    <p>Features:</p>
+    <ul>
+      <li>Four independent parts and quick subdivision modes, including triplets and quintuplets</li>
+      <li>Equal temperament, well temperament, Ptolemaic and harmonic series tunings</li>
+      <li>Real-time and pre-rendered playback</li>
+      <li>Export to WAV, PNG and MP4 video</li>
+    </ul>
   </description>
   <launchable type="desktop-id">io.github.ptolemy100.MiniPianoRoll.desktop</launchable>
+  <screenshots>
+    <screenshot type="default">
+      <image>https://raw.githubusercontent.com/ptolemy100/mini-piano-roll/master/screenshots/main.png</image>
+      <caption>Composing in the piano roll</caption>
+    </screenshot>
+  </screenshots>
+  <keywords>
+    <keyword>music</keyword>
+    <keyword>sequencer</keyword>
+    <keyword>piano roll</keyword>
+    <keyword>chiptune</keyword>
+  </keywords>
   <url type="homepage">https://github.com/ptolemy100/mini-piano-roll</url>
+  <url type="bugtracker">https://github.com/ptolemy100/mini-piano-roll/issues</url>
+  <url type="vcs-browser">https://github.com/ptolemy100/mini-piano-roll</url>
   <content_rating type="oars-1.1"/>
   <releases>
     <release version="1.0.1" date="2026-11-07"/>
