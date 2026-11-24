@@ -42,7 +42,7 @@ modules:
     sources:
       - type: git
         url: https://github.com/ptolemy100/mini-piano-roll
-        tag: v1.0.1
+        tag: v1.0.2
       - type: file
         path: io.github.ptolemy100.MiniPianoRoll.desktop
       - type: file
