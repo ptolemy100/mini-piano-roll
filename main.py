@@ -3111,4 +3111,15 @@ while running:
     pygame.display.flip()
     clock.tick(60)
 
+# Shut down audio explicitly so the process really exits
+playback_stop_event.set()
+for s in (current_stream, p_stream):
+    if s is not None:
+        try:
+            s.abort()
+            s.close()
+        except Exception:
+            pass
 pygame.quit()
+sys.stdout.flush()
+os._exit(0)
